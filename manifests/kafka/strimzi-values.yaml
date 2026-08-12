@@ -1,0 +1,17 @@
+# Strimzi Cluster Operator for the kafka namespace.
+# Install/upgrade:
+#   helm upgrade --install strimzi strimzi/strimzi-kafka-operator --version 1.1.0 \
+#     --namespace kafka --create-namespace -f manifests/kafka/strimzi-values.yaml
+#
+# Network policies and PDBs are disabled because this dev cluster has a single
+# small node and the task only requires a working Kafka cluster and explicit topics.
+generateNetworkPolicy: false
+generatePodDisruptionBudget: false
+
+resources:
+  requests:
+    memory: 192Mi
+    cpu: 100m
+  limits:
+    memory: 512Mi
+    cpu: 500m

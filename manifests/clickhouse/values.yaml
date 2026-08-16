@@ -1,0 +1,48 @@
+replicaCount: 1
+image:
+  repository: clickhouse/clickhouse-server
+  pullPolicy: IfNotPresent
+  tag: "25.7-alpine"
+
+installationType: "standalone"
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 128Mi
+  limits:
+    memory: 768Mi
+
+persistence:
+  enabled: true
+  storageClass: csi-cinder-high-speed-gen2
+  size: 1Gi
+
+clickhouseKeeper:
+  enabled: false
+
+clickhouse:
+  name: analytics-clickhouse
+  logLevel: information
+  accessManagement: false
+  users:
+    - name: default
+      profile: default
+      quota: default
+      password:
+        secretKeyRef:
+          name: analytics-clickhouse-secret
+          key: default-password
+    - name: analytics
+      profile: default
+      quota: default
+      password:
+        secretKeyRef:
+          name: analytics-clickhouse-secret
+          key: analytics-password
+
+metrics:
+  enabled: false
+
+tlsCerts:
+  create: false

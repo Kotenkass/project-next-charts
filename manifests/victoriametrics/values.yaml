@@ -1,0 +1,89 @@
+# VictoriaMetrics minimal values for k8s cluster with limited resources.
+# Installed with:
+#   helm upgrade --install vm bitnami/victoriametrics -n metrics -f values.yaml
+#
+# Access query API from cluster:
+#   http://vm-victoriametrics-vmselect:8481/select/0/prometheus/api/v1/query?query=...
+# From local with kubectl port-forward:
+#   kubectl -n metrics port-forward svc/vm-victoriametrics-vmselect 8481:8481
+#   curl 'http://127.0.0.1:8481/select/0/prometheus/api/v1/query?query=kafka_lag'
+
+vmagent:
+  enabled: true
+  existingScrapeConfigMap: vmagent-scrape-config
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 300m
+      memory: 256Mi
+  pdb:
+    create: false
+  networkPolicy:
+    enabled: false
+  metrics:
+    enabled: false
+  service:
+    annotations:
+      prometheus.io/scrape: "true"
+      prometheus.io/port: "8429"
+      prometheus.io/path: "/metrics"
+
+vminsert:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 300m
+      memory: 512Mi
+  pdb:
+    create: false
+  networkPolicy:
+    enabled: false
+  metrics:
+    enabled: false
+
+vmselect:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 300m
+      memory: 512Mi
+  pdb:
+    create: false
+  networkPolicy:
+    enabled: false
+  metrics:
+    enabled: false
+  ingress:
+    enabled: false
+
+vmstorage:
+  retentionPeriod: 7
+  persistence:
+    enabled: true
+    size: 5Gi
+    storageClass: csi-cinder-high-speed-gen2
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 768Mi
+  pdb:
+    create: false
+  networkPolicy:
+    enabled: false
+  metrics:
+    enabled: false
+
+vmauth:
+  enabled: false
+
+vmalert:
+  enabled: false

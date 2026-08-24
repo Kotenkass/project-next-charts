@@ -1,0 +1,42 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: web-admin-ingress
+  namespace: dev
+  labels:
+    app: web-admin
+    environment: dev
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - admin.sparktonapp.ru
+      secretName: web-admin-tls
+  rules:
+    - host: admin.sparktonapp.ru
+      http:
+        paths:
+          - path: /c
+            pathType: Prefix
+            backend:
+              service:
+                name: web-admin
+                port:
+                  number: 8080
+          - path: /static
+            pathType: Prefix
+            backend:
+              service:
+                name: web-admin
+                port:
+                  number: 8080
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: web-admin
+                port:
+                  number: 8080

@@ -117,6 +117,27 @@ data:
           - source_labels: [__meta_kubernetes_pod_name]
             target_label: pod
 
+      - job_name: recommender
+        metrics_path: /metrics
+        kubernetes_sd_configs:
+          - role: endpoints
+            namespaces:
+              names:
+                - dev
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_service_name]
+            action: keep
+            regex: recommender
+          - source_labels: [__meta_kubernetes_endpoint_port_name]
+            action: keep
+            regex: http
+          - source_labels: [__meta_kubernetes_namespace]
+            target_label: namespace
+          - source_labels: [__meta_kubernetes_service_name]
+            target_label: service
+          - source_labels: [__meta_kubernetes_pod_name]
+            target_label: pod
+
       - job_name: clickhouse
         metrics_path: /metrics
         kubernetes_sd_configs:

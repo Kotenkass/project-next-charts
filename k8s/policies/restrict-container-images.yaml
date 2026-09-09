@@ -10,7 +10,7 @@ metadata:
       Requires tagged images from the configured registry, blocks latest tags,
       and enforces the policy for all matching workloads.
 spec:
-  validationFailureAction: enforce
+  validationFailureAction: Enforce
   background: true
   rules:
     - name: disallow-latest-tag

@@ -10,7 +10,7 @@ metadata:
       Blocks privileged containers and runAsNonRoot=false. Enforces the policy
       for all matching workloads.
 spec:
-  validationFailureAction: enforce
+  validationFailureAction: Enforce
   background: true
   rules:
     - name: disallow-privileged-containers

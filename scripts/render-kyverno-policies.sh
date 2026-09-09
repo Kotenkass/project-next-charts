@@ -21,7 +21,7 @@ cp "$src_dir/require-safe-pod-security-context.yaml" "$out_dir/require-safe-pod-
 
 awk -v key="$COSIGN_PUB" -v img_pat="${IMAGE_NAME}*" '
   index($0, "REPLACE_ME_WITH_YOUR_COSIGN_PUBLIC_KEY") {
-    n = split(key, lines, /\\n/)
+    n = split(key, lines, RS)
     for (i = 1; i <= n; i++) {
       printf "%s%s\n", "                      ", lines[i]
     }

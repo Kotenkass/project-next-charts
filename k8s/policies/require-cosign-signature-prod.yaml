@@ -10,7 +10,7 @@ metadata:
       Requires production workloads to use images signed with the configured cosign key.
       Enforce production image signature validation for all matching workloads.
 spec:
-  validationFailureAction: enforce
+  validationFailureAction: Enforce
   background: true
   rules:
     - name: require-signed-images-in-prod

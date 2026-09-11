@@ -19,6 +19,15 @@ spec:
           - resources:
               kinds:
                 - Pod
+      exclude:
+        any:
+          - resources:
+              namespaces:
+                - ingress-nginx
+                - cert-manager
+                - metrics
+                - github-runners
+                - actions-runner-system
       validate:
         message: "Image tags must be explicit; ':latest' or no tag is not allowed."
         pattern:
@@ -40,6 +49,11 @@ spec:
               namespaces:
                 - kafka
                 - clickhouse-operator-system
+                - ingress-nginx
+                - cert-manager
+                - metrics
+                - github-runners
+                - actions-runner-system
           - resources:
               names:
                 - "postgres-dev-*"

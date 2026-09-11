@@ -25,6 +25,11 @@ spec:
               namespaces:
                 - kafka
                 - clickhouse-operator-system
+                - ingress-nginx
+                - cert-manager
+                - metrics
+                - github-runners
+                - actions-runner-system
           - resources:
               names:
                 - "analytics-clickhouse-*"
@@ -51,6 +56,10 @@ spec:
               namespaces:
                 - kafka
                 - clickhouse-operator-system
+                - ingress-nginx
+                - cert-manager
+                - metrics
+                - actions-runner-system
           - resources:
               names:
                 - "analytics-clickhouse-*"

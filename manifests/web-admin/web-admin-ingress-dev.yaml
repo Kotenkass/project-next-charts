@@ -9,6 +9,45 @@ metadata:
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-prod
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    # --- ModSecurity + OWASP CRS ---
+    nginx.ingress.kubernetes.io/enable-modsecurity: "true"
+    nginx.ingress.kubernetes.io/enable-owasp-core-rules: "true"
+    nginx.ingress.kubernetes.io/modsecurity-snippet: |
+      SecRuleEngine On
+      SecRequestBodyAccess On
+      SecRequestBodyLimit 13107200
+      SecRequestBodyNoFilesLimit 131072
+      SecResponseBodyAccess On
+      SecResponseBodyLimit 524288
+      SecAuditEngine RelevantOnly
+      SecAuditLogParts ABIJDEFHZ
+      SecAuditLog /var/log/modsec_audit.log
+      SecDebugLog /var/log/modsec_debug.log
+      SecDebugLogLevel 0
+
+      # CRS tuning: reduce false positives on JSON API / session cookie / dashboard.
+      SecAction "id:900200,phase:1,nolog,pass,t:none,setvar:tx.allowed_methods=GET HEAD POST OPTIONS"
+      SecAction "id:900220,phase:1,nolog,pass,t:none,setvar:tx.allowed_request_content_type=|application/x-www-form-urlencoded| |multipart/form-data| |text/xml| |application/xml| |application/soap+xml| |application/json|"
+      SecAction "id:900250,phase:1,nolog,pass,t:none,setvar:tx.allowed_http_versions=HTTP/1.0 HTTP/1.1 HTTP/2 HTTP/2.0"
+
+      # ---- Rate limiting ----
+      # 1. /c/* — one-time cabinet tokens may be brute-forced; strict limit.
+      SecAction "id:1001000,phase:1,nolog,pass,initcol:ip=%{REMOTE_ADDR}"
+      SecRule REQUEST_URI "@beginsWith /c/" \
+        "id:1001001,phase:1,deny,status:429,log,msg:'Rate limit exceeded on /c/*',chain"
+        SecRule IP:C_RATE "@gt 10" "setvar:ip.c_rate=+1,expirevar:ip.c_rate=60"
+
+      # 2. POST /internal/token — token creation endpoint; protect against abuse.
+      SecRule REQUEST_METHOD "@streq POST" \
+        "id:1001002,phase:1,deny,status:429,log,msg:'Rate limit exceeded on POST /internal/token',chain"
+        SecRule REQUEST_URI "@streq /internal/token" "chain"
+        SecRule IP:TOKEN_RATE "@gt 5" "setvar:ip.token_rate=+1,expirevar:ip.token_rate=60"
+      SecRule REQUEST_METHOD "@streq POST" \
+        "id:1001003,phase:1,nolog,pass,setvar:ip.token_rate=+1,expirevar:ip.token_rate=60"
+
+      # Virtual patch example for the XSS probe required by the task.
+      SecRule ARGS:q "@detectXSS" \
+        "id:1001099,phase:2,deny,status:403,log,msg:'XSS probe blocked by virtual patch',tag:'project-next/task13'"
 spec:
   ingressClassName: nginx
   tls:

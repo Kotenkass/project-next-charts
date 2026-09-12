@@ -1,0 +1,9 @@
+# Тест 1: запрещено. answers НЕ имеет права ходить в analytics.
+$ kubectl exec -n dev deploy/answers -- curl -m 3 http://analytics:8080/aggregates
+# (curl в контейнере отсутствует; эквивалент через wget)
+$ kubectl exec -n dev deploy/answers -- wget -q -T 3 -O- http://analytics:8080/aggregates
+
+wget: download timed out
+command terminated with exit code 1
+
+# ИТОГ: timeout — соединение заблокировано NetworkPolicy (ожидаемо)

@@ -1,0 +1,14 @@
+$ kubectl get networkpolicy -n dev
+
+NAME                       POD-SELECTOR                                      AGE
+allow-analytics            app=analytics                                     16m
+allow-answers              app=answers                                       16m
+allow-clickhouse-ingress   app.kubernetes.io/instance=analytics-clickhouse   8m13s
+allow-postgres-ingress     app=postgres                                      8m14s
+allow-recommender          app=recommender                                   16m
+allow-redis-ingress        app=redis                                         8m14s
+allow-scheduler            app=scheduler                                     16m
+allow-telegram-api         app=telegram-api                                  16m
+allow-users                app=users                                         16m
+allow-web-admin            app=web-admin                                     16m
+default-deny-all           <none>                                            16m

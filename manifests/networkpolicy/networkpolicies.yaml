@@ -1,0 +1,498 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: dev
+  labels:
+    app.kubernetes.io/part-of: project-next
+    task: "14"
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+  # ICMP (ping) разрешён глобально для отладки сетевой связности.
+  egress:
+    - to:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-telegram-api
+  namespace: dev
+  labels:
+    app.kubernetes.io/part-of: project-next
+    task: "14"
+spec:
+  podSelector:
+    matchLabels:
+      app: telegram-api
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Разрешаем входящий от Telegram webhook / long-polling через Ingress
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 8080
+  egress:
+    # → answers
+    - to:
+        - podSelector:
+            matchLabels:
+              app: answers
+      ports:
+        - protocol: TCP
+          port: 8080
+    # → users
+    - to:
+        - podSelector:
+            matchLabels:
+              app: users
+      ports:
+        - protocol: TCP
+          port: 8080
+    # → Redis
+    - to:
+        - podSelector:
+            matchLabels:
+              app: redis
+      ports:
+        - protocol: TCP
+          port: 6379
+    # → Telegram API (внешний)
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+      ports:
+        - protocol: TCP
+          port: 443
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-answers
+  namespace: dev
+  labels:
+    app.kubernetes.io/part-of: project-next
+    task: "14"
+spec:
+  podSelector:
+    matchLabels:
+      app: answers
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # ← telegram-api, web-admin
+    - from:
+        - podSelector:
+            matchLabels:
+              app: telegram-api
+        - podSelector:
+            matchLabels:
+              app: web-admin
+      ports:
+        - protocol: TCP
+          port: 8080
+  egress:
+    # → PostgreSQL
+    - to:
+        - podSelector:
+            matchLabels:
+              app: postgres
+      ports:
+        - protocol: TCP
+          port: 5432
+    # → Kafka (bootstrap в namespace kafka)
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kafka
+        - podSelector:
+            matchLabels:
+              strimzi.io/name: kafka-kafka
+      ports:
+        - protocol: TCP
+          port: 9092
+    # → Redis
+    - to:
+        - podSelector:
+            matchLabels:
+              app: redis
+      ports:
+        - protocol: TCP
+          port: 6379
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-analytics
+  namespace: dev
+  labels:
+    app.kubernetes.io/part-of: project-next
+    task: "14"
+spec:
+  podSelector:
+    matchLabels:
+      app: analytics
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # ← web-admin, recommender
+    - from:
+        - podSelector:
+            matchLabels:
+              app: web-admin
+        - podSelector:
+            matchLabels:
+              app: recommender
+      ports:
+        - protocol: TCP
+          port: 8080
+  egress:
+    # → ClickHouse
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/component: server
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: analytics-clickhouse
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: clickhouse
+        - podSelector:
+            matchLabels:
+              statefulset.kubernetes.io/pod-name: analytics-clickhouse-0
+      ports:
+        - protocol: TCP
+          port: 8123
+        - protocol: TCP
+          port: 9000
+    # → Kafka
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kafka
+        - podSelector:
+            matchLabels:
+              strimzi.io/name: kafka-kafka
+      ports:
+        - protocol: TCP
+          port: 9092
+    # → PostgreSQL
+    - to:
+        - podSelector:
+            matchLabels:
+              app: postgres
+      ports:
+        - protocol: TCP
+          port: 5432
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-web-admin
+  namespace: dev
+  labels:
+    app.kubernetes.io/part-of: project-next
+    task: "14"
+spec:
+  podSelector:
+    matchLabels:
+      app: web-admin
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # ← ingress-nginx
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 8080
+  egress:
+    # → users
+    - to:
+        - podSelector:
+            matchLabels:
+              app: users
+      ports:
+        - protocol: TCP
+          port: 8080
+    # → analytics
+    - to:
+        - podSelector:
+            matchLabels:
+              app: analytics
+      ports:
+        - protocol: TCP
+          port: 8080
+    # → answers
+    - to:
+        - podSelector:
+            matchLabels:
+              app: answers
+      ports:
+        - protocol: TCP
+          port: 8080
+    # → Redis
+    - to:
+        - podSelector:
+            matchLabels:
+              app: redis
+      ports:
+        - protocol: TCP
+          port: 6379
+    # → PostgreSQL
+    - to:
+        - podSelector:
+            matchLabels:
+              app: postgres
+      ports:
+        - protocol: TCP
+          port: 5432
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-recommender
+  namespace: dev
+  labels:
+    app.kubernetes.io/part-of: project-next
+    task: "14"
+spec:
+  podSelector:
+    matchLabels:
+      app: recommender
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # recommender работает фоново, входящий не нужен
+    []
+  egress:
+    # → analytics
+    - to:
+        - podSelector:
+            matchLabels:
+              app: analytics
+      ports:
+        - protocol: TCP
+          port: 8080
+    # → users
+    - to:
+        - podSelector:
+            matchLabels:
+              app: users
+      ports:
+        - protocol: TCP
+          port: 8080
+    # → Redis
+    - to:
+        - podSelector:
+            matchLabels:
+              app: redis
+      ports:
+        - protocol: TCP
+          port: 6379
+    # → LLM API (внешний) — openai.bothub.ru
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+      ports:
+        - protocol: TCP
+          port: 443
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-scheduler
+  namespace: dev
+  labels:
+    app.kubernetes.io/part-of: project-next
+    task: "14"
+spec:
+  podSelector:
+    matchLabels:
+      app: scheduler
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    []
+  egress:
+    # → Redis
+    - to:
+        - podSelector:
+            matchLabels:
+              app: redis
+      ports:
+        - protocol: TCP
+          port: 6379
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-users
+  namespace: dev
+  labels:
+    app.kubernetes.io/part-of: project-next
+    task: "14"
+spec:
+  podSelector:
+    matchLabels:
+      app: users
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # ← telegram-api, web-admin, recommender
+    - from:
+        - podSelector:
+            matchLabels:
+              app: telegram-api
+        - podSelector:
+            matchLabels:
+              app: web-admin
+        - podSelector:
+            matchLabels:
+              app: recommender
+      ports:
+        - protocol: TCP
+          port: 8080
+  egress:
+    # → PostgreSQL
+    - to:
+        - podSelector:
+            matchLabels:
+              app: postgres
+      ports:
+        - protocol: TCP
+          port: 5432
+---
+# ---------------------------------------------------------------------------
+# Ingress к инфраструктурным подам.
+#
+# default-deny-all (podSelector: {}) запрещает весь входящий трафик ко всем
+# подам, включая PostgreSQL, Redis и ClickHouse. Чтобы сервисы могли к ним
+# ходить, нужно явно разрешить входящие соединения от сервисов, которым это
+# разрешено картой соединений из задачи 2.
+# ---------------------------------------------------------------------------
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-postgres-ingress
+  namespace: dev
+  labels:
+    app.kubernetes.io/part-of: project-next
+    task: "14"
+spec:
+  podSelector:
+    matchLabels:
+      app: postgres
+  policyTypes:
+    - Ingress
+  ingress:
+    # ← answers, analytics, web-admin, users
+    - from:
+        - podSelector:
+            matchLabels:
+              app: answers
+        - podSelector:
+            matchLabels:
+              app: analytics
+        - podSelector:
+            matchLabels:
+              app: web-admin
+        - podSelector:
+            matchLabels:
+              app: users
+      ports:
+        - protocol: TCP
+          port: 5432
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-redis-ingress
+  namespace: dev
+  labels:
+    app.kubernetes.io/part-of: project-next
+    task: "14"
+spec:
+  podSelector:
+    matchLabels:
+      app: redis
+  policyTypes:
+    - Ingress
+  ingress:
+    # ← telegram-api, answers, scheduler, recommender, web-admin
+    - from:
+        - podSelector:
+            matchLabels:
+              app: telegram-api
+        - podSelector:
+            matchLabels:
+              app: answers
+        - podSelector:
+            matchLabels:
+              app: scheduler
+        - podSelector:
+            matchLabels:
+              app: recommender
+        - podSelector:
+            matchLabels:
+              app: web-admin
+      ports:
+        - protocol: TCP
+          port: 6379
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-clickhouse-ingress
+  namespace: dev
+  labels:
+    app.kubernetes.io/part-of: project-next
+    task: "14"
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: analytics-clickhouse
+  policyTypes:
+    - Ingress
+  ingress:
+    # ← analytics
+    - from:
+        - podSelector:
+            matchLabels:
+              app: analytics
+      ports:
+        - protocol: TCP
+          port: 8123
+        - protocol: TCP
+          port: 9000

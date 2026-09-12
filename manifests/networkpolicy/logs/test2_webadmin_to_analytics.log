@@ -1,0 +1,14 @@
+# Тест 2: разрешено. web-admin имеет право ходить в analytics.
+$ kubectl exec -n dev deploy/web-admin -- curl -m 3 "http://analytics:8080/aggregates?chat_id=1&since=2026-01-01&until=2026-12-31"
+# (curl в контейнере отсутствует; эквивалент через wget. Параметры обязательны — /aggregates требует chat_id/since/until)
+$ kubectl exec -n dev deploy/web-admin -- sh -c 'wget -q -S -T 3 -O- "http://analytics:8080/aggregates?chat_id=1&since=2026-01-01&until=2026-12-31" 2>&1'
+
+  HTTP/1.1 200 OK
+  Content-Type: application/json
+  Date: Sat, 12 Sep 2026 13:55:12 GMT
+  Content-Length: 36
+  Connection: close
+  
+[{"date":"2026-08-18","count":200}]
+
+# ИТОГ: HTTP/1.1 200 OK — соединение разрешено NetworkPolicy

@@ -1,0 +1,9 @@
+# Тест 3: запрещено. answers НЕ имеет права выходить наружу.
+$ kubectl exec -n dev deploy/answers -- curl -m 3 https://api.anthropic.com
+# В проекте внешний LLM = https://openai.bothub.ru/v1 (см. задачу), проверяем его.
+$ kubectl exec -n dev deploy/answers -- sh -c 'wget -q -T 3 -O- https://openai.bothub.ru/v1 2>&1'
+
+wget: download timed out
+command terminated with exit code 1
+
+# ИТОГ: timeout — egress наружу заблокирован NetworkPolicy (ожидаемо)

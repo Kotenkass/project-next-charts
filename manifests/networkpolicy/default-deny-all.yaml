@@ -1,0 +1,26 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: dev
+  labels:
+    app.kubernetes.io/part-of: project-next
+    task: "14"
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+  # DNS разрешён глобально, чтобы сервисы могли резолвить внутренние имена.
+  # Все исходящие соединения по-прежнему запрещены по умолчанию.
+  egress:
+    - to:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
